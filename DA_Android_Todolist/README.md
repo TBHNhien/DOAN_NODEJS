@@ -1,4 +1,4 @@
-## ĐỒ ÁN LẬP TRÌNH TRÊN THIẾT BỊ DI ĐỘNG
+## ĐỒ ÁN NNPTUDM
 ## ĐỀ TÀI: Ứng dụng ghi chú Todolist
 Báo cáo: 1/10/2024
 Công nghệ sử dụng:
@@ -8,4 +8,4 @@ Công nghệ sử dụng:
 
 
 
-Created by @congthien2003 @thaibaohaonhien @tranhuuthien with love <3
+Created by  @thaibaohaonhien with love <3
