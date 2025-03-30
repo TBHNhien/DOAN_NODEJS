@@ -1,5 +1,5 @@
 const { body } = require('express-validator');
-const message = require('./helper/message');
+const message = require('../helper/message');
 const util = require('util')
 
 var options={

@@ -4,6 +4,9 @@ const app = express();
 const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
 const util = require('util');
+const jwt = require('jsonwebtoken');
+const configs = require('./helper/config');
+const { checkLogin } = require('./protect');
 
 
 var validate = require('./validates/user')
@@ -413,27 +416,150 @@ app.post('/app/register', userValidator, (req, res) => {
 //     });
 // });
 
+
+//bcrypt
+// app.post('/app/checkLogin', (req, res) => {
+//     const email = req.body.email;
+//     const userPass = req.body.userPassword; 
+//     const sql = `SELECT * FROM appuser WHERE email = ?`;
+//     con.query(sql, [email], (err, result) => {
+//         if (err) throw err;
+
+//         if (result.length > 0) {
+//             const user = result[0];
+//             const passwordMatch = bcrypt.compareSync(userPass, user.userPassword);
+
+//             if (passwordMatch) {        
+//                 res.status(200).json(result);
+//             } else {
+//                 res.status(404).json({ 'message': 'Invalid username or password' });
+//             }
+//         } else {
+//             res.status(404).json({ 'message': 'Invalid username or password' });
+//         }
+//     });
+// });
+
+
+
+
+//bcrypt + jwt 
+// app.post('/app/checkLogin', (req, res) => {
+//     const email = req.body.email;
+//     const userPass = req.body.userPassword; 
+
+//     const sql = `SELECT * FROM appuser WHERE email = ?`;
+
+//     con.query(sql, [email], (err, result) => {
+//         if (err) {
+//             console.error(err);
+//             return res.status(500).json({ 'message': 'Lỗi Nội Server' });
+//         }
+
+//         if (result.length > 0) {
+//             const user = result[0];
+//             const passwordMatch = bcrypt.compareSync(userPass, user.userPassword);
+
+//             if (passwordMatch) {
+//                 // Tạo JWT
+//                 const token = jwt.sign({
+//                     userId: user.userID,
+//                     email: user.email,
+//                     fullname: user.fullname,
+//                     phoneNumber: user.phoneNumber,
+//                     sex: user.sex,
+//                     username: user.username,
+//                     userStatus: user.userStatus,
+//                     role: user.role
+//                 }, configs.SECRET_KEY, {
+//                     expiresIn: configs.EXP
+//                 });
+
+//                 // Đặt token trong header hoặc body của phản hồi theo cần thiết
+//                 res.cookie('tokenJWT', token, {
+//                     expires: new Date(Date.now() + 2 * 24 * 3600 * 1000),
+//                     httpOnly: true
+//                 });
+
+//                 // res.status(200).json({ 'message': 'Đăng nhập thành công', 'token': token, 'user': user });
+//                 res.status(200).json(result);
+//             } else {
+//                 res.status(401).json({ 'message': 'Tên người dùng hoặc mật khẩu không đúng' });
+//             }
+//         } else {
+//             res.status(401).json({ 'message': 'Tên người dùng hoặc mật khẩu không đúng' });
+//         }
+//     });
+// });
+
 app.post('/app/checkLogin', (req, res) => {
     const email = req.body.email;
     const userPass = req.body.userPassword; 
+
     const sql = `SELECT * FROM appuser WHERE email = ?`;
+
     con.query(sql, [email], (err, result) => {
-        if (err) throw err;
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ 'message': 'Lỗi Nội Server' });
+        }
 
         if (result.length > 0) {
             const user = result[0];
             const passwordMatch = bcrypt.compareSync(userPass, user.userPassword);
 
-            if (passwordMatch) {        
-                res.status(200).json(result);
+            if (passwordMatch) {
+                // Tạo JWT
+                const token = jwt.sign({
+                    userId: user.userID
+                }, configs.SECRET_KEY, {
+                    expiresIn: configs.EXP
+                });
+
+                // Kiểm tra quyền hạn
+                if (user.role === 'admin') {
+                    // Đặt token trong header hoặc body của phản hồi theo cần thiết
+                    res.cookie('tokenJWT', token, {
+                        expires: new Date(Date.now() + 2 * 24 * 3600 * 1000),
+                        httpOnly: true
+                    });
+                    // Chuyển hướng đến /app/checkLoginAdmin
+                    res.redirect('/app/checkLoginAdmin');
+
+                } else {
+                    // Đặt token trong header hoặc body của phản hồi theo cần thiết
+                    res.cookie('tokenJWT', token, {
+                        expires: new Date(Date.now() + 2 * 24 * 3600 * 1000),
+                        httpOnly: true
+                    });
+
+                    // res.status(200).json({ 'message': 'Đăng nhập thành công', 'token': token, 'user': user });
+                    res.status(200).json(result);
+                }
             } else {
-                res.status(404).json({ 'message': 'Invalid username or password' });
+                res.status(401).json({ 'message': 'Tên người dùng hoặc mật khẩu không đúng' });
             }
         } else {
-            res.status(404).json({ 'message': 'Invalid username or password' });
+            res.status(401).json({ 'message': 'Tên người dùng hoặc mật khẩu không đúng' });
         }
     });
 });
+
+// Điều hướng cho admin
+app.get('/app/checkLoginAdmin', (req, res) => {
+    res.status(200).json({ 'message': 'Đăng nhập thành công với quyền admin' });
+});
+
+
+app.get('/app/logout', (req, res) => {
+    res.cookie('tokenJWT', 'none', {
+        expires: new Date(Date.now() + 1000),
+        httpOnly: true
+    });
+
+    res.status(200).json({ 'message': 'Logout thành công' });
+});
+
 
 
 
